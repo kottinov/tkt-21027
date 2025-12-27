@@ -1,0 +1,14 @@
+apiVersion: v1
+data:
+  20251227_create_counter_table.sql: |
+    CREATE TABLE IF NOT EXISTS counter (
+        id INTEGER PRIMARY KEY,
+        count INTEGER NOT NULL
+    );
+
+    INSERT INTO counter (id, count) VALUES (1, 0) ON CONFLICT (id) DO NOTHING;
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: postgres-migration
+  namespace: exercises

@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS counter (
+    id INTEGER PRIMARY KEY,
+    count INTEGER NOT NULL
+);
+
+INSERT INTO counter (id, count) VALUES (1, 0) ON CONFLICT (id) DO NOTHING;

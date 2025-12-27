@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: exercises
+  name: postgres-migration
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: migrations
+          configMap:
+            name: postgres-migration
+      containers:
+        - name: migrate
+          image: postgres:16-alpine
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres-stset-0.postgres-svc -p 5432 -U postgres; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+
+              echo "Running migrations..."
+              psql postgresql://postgres:postgres@postgres-stset-0.postgres-svc:5432/pingpong -f /migrations/20251227_create_counter_table.sql
+
+              echo "Migration completed successfully"
