@@ -1,0 +1,10 @@
+[package]
+name = "log-output"
+version = "0.0.1"
+edition = "2026"
+
+[dependencies]
+chrono = "0.4.42"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "time"] }
+uuid = { version = "1.19.0", features = ["v4"] }
