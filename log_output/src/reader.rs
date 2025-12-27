@@ -6,9 +6,20 @@ use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::EnvFilter;
 
 const FILE_PATH: &str = "/usr/src/app/files/log.txt";
+const CONFIG_FILE_PATH: &str = "/usr/src/app/config/information.txt";
 const PING_PONG_URL: &str = "http://ping-pong-svc:3000/pings";
 
 async fn log_output() -> HttpResponse {
+    let config_content = match fs::read_to_string(CONFIG_FILE_PATH) {
+        Ok(content) => content.trim().to_string(),
+        Err(e) => {
+            tracing::error!("Failed to read config file: {}", e);
+            "config file not found".to_string()
+        }
+    };
+
+    let message = std::env::var("MESSAGE").unwrap_or_else(|_| "env variable not set".to_string());
+
     let log_content = match fs::read_to_string(FILE_PATH) {
         Ok(content) => content.lines().last().unwrap_or("").to_string(),
         Err(e) => {
@@ -33,7 +44,10 @@ async fn log_output() -> HttpResponse {
         }
     };
 
-    let response = format!("{}.\nPing / Pongs: {}", log_content, ping_count);
+    let response = format!(
+        "file content: {}\nenv variable: MESSAGE={}\n{}.\nPing / Pongs: {}",
+        config_content, message, log_content, ping_count
+    );
 
     HttpResponse::Ok()
         .content_type("text/plain; charset=utf-8")
