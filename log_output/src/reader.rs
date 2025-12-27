@@ -6,19 +6,29 @@ use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::EnvFilter;
 
 const FILE_PATH: &str = "/usr/src/app/files/log.txt";
+const COUNTER_FILE: &str = "/usr/src/app/shared/pingpong_count.txt";
 
 async fn log_output() -> HttpResponse {
-    match fs::read_to_string(FILE_PATH) {
-        Ok(content) => HttpResponse::Ok()
-            .content_type("text/plain; charset=utf-8")
-            .body(content),
+    let log_content = match fs::read_to_string(FILE_PATH) {
+        Ok(content) => content.lines().last().unwrap_or("").to_string(),
         Err(e) => {
             tracing::error!("Failed to read log file: {}", e);
-            HttpResponse::InternalServerError()
+            return HttpResponse::InternalServerError()
                 .content_type("text/plain; charset=utf-8")
-                .body(format!("Error reading log file: {}", e))
+                .body(format!("Error reading log file: {}", e));
         }
-    }
+    };
+
+    let ping_count = fs::read_to_string(COUNTER_FILE)
+        .ok()
+        .and_then(|c| c.trim().parse::<usize>().ok())
+        .unwrap_or(0);
+
+    let response = format!("{}.\nPing / Pongs: {}", log_content, ping_count);
+
+    HttpResponse::Ok()
+        .content_type("text/plain; charset=utf-8")
+        .body(response)
 }
 
 fn run(listener: TcpListener) -> Result<Server, std::io::Error> {

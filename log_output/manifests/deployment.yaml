@@ -17,9 +17,13 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
+        fsGroup: 10001
       volumes:
         - name: shared-logs
           emptyDir: {}
+        - name: shared-data
+          persistentVolumeClaim:
+            claimName: shared-pvc
       containers:
         - name: log-writer
           image: log-writer:prod
@@ -46,6 +50,8 @@ spec:
           volumeMounts:
             - name: shared-logs
               mountPath: /usr/src/app/files
+            - name: shared-data
+              mountPath: /usr/src/app/shared
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
