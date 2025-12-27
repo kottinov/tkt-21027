@@ -36,12 +36,81 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
             body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
             h1 { color: #333; }
             img { max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 4px; margin-top: 20px; }
+            .todo-section { margin: 30px 0; }
+            .todo-form { display: flex; gap: 10px; margin-bottom: 20px; }
+            .todo-input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
+            .todo-button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+            .todo-button:hover { background-color: #0056b3; }
+            .todo-list { list-style: none; padding: 0; }
+            .todo-item { padding: 12px; margin-bottom: 8px; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; }
+            .char-counter { font-size: 12px; color: #666; margin-top: 5px; }
+            .char-counter.warning { color: #dc3545; }
         </style>
     </head>
     <body>
         <h1>The Project</h1>
-        <p>Random image (refreshes every 10 minutes):</p>
-        <img src="/the-project/image.jpg" alt="Random image from Lorem Picsum">
+
+        <div class="todo-section">
+            <h2>Todo List</h2>
+            <div class="todo-form">
+                <input type="text"
+                       id="todoInput"
+                       class="todo-input"
+                       placeholder="Enter a new todo (max 140 characters)"
+                       maxlength="140"
+                       oninput="updateCharCounter()">
+                <button class="todo-button" onclick="addTodo()">Send</button>
+            </div>
+            <div id="charCounter" class="char-counter">0 / 140 characters</div>
+
+            <h3>Existing Todos:</h3>
+            <ul class="todo-list">
+                <li class="todo-item">Learn Kubernetes basics</li>
+                <li class="todo-item">Deploy application to cluster</li>
+                <li class="todo-item">Set up persistent volumes</li>
+                <li class="todo-item">Implement todo functionality</li>
+            </ul>
+        </div>
+
+        <div>
+            <h2>Random Image</h2>
+            <p>Random image (refreshes every 10 minutes):</p>
+            <img src="/the-project/image.jpg" alt="Random image from Lorem Picsum">
+        </div>
+
+        <script>
+            function updateCharCounter() {
+                const input = document.getElementById('todoInput');
+                const counter = document.getElementById('charCounter');
+                const length = input.value.length;
+                counter.textContent = length + ' / 140 characters';
+
+                if (length > 130) {
+                    counter.classList.add('warning');
+                } else {
+                    counter.classList.remove('warning');
+                }
+            }
+
+            function addTodo() {
+                const input = document.getElementById('todoInput');
+                const todoText = input.value.trim();
+
+                if (todoText === '') {
+                    alert('Please enter a todo item');
+                    return;
+                }
+
+                if (todoText.length > 140) {
+                    alert('Todo must be 140 characters or less');
+                    return;
+                }
+
+                alert('Todo will be added in the next version!');
+                input.value = '';
+                updateCharCounter();
+            }
+        </script>
     </body>
     </html>"#;
 
