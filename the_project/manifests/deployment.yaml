@@ -17,10 +17,16 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
+      volumes:
+        - name: image-cache
+          emptyDir: {}
       containers:
         - name: the-project
           image: the-project:prod
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: image-cache
+              mountPath: /usr/src/app/cache
           livenessProbe:
             httpGet:
               path: /the-project/healthz
