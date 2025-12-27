@@ -4,13 +4,13 @@ WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
 
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release
+RUN mkdir -p src && echo "fn main() {}" > src/writer.rs && echo "fn main() {}" > src/reader.rs
+RUN cargo build --release --bin log-reader
 RUN rm -rf src
 
 COPY src ./src
 
-RUN cargo build --release
+RUN cargo build --release --bin log-reader
 
 FROM debian:bookworm-slim
 
@@ -20,9 +20,9 @@ RUN apt-get update \
 
 RUN useradd -r -u 10001 app
 
-COPY --from=builder /app/target/release/log-output /usr/local/bin/log-output
+COPY --from=builder /app/target/release/log-reader /usr/local/bin/log-reader
 
 USER app
 ENV RUST_LOG=info
 
-ENTRYPOINT ["/usr/local/bin/log-output"]
+ENTRYPOINT ["/usr/local/bin/log-reader"]

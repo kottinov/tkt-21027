@@ -17,10 +17,35 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
+      volumes:
+        - name: shared-logs
+          emptyDir: {}
       containers:
-        - name: log-output
-          image: log-output:prod
+        - name: log-writer
+          image: log-writer:prod
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /usr/src/app/files
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+        - name: log-reader
+          image: log-reader:prod
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /usr/src/app/files
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
