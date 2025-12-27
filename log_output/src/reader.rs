@@ -6,7 +6,7 @@ use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::EnvFilter;
 
 const FILE_PATH: &str = "/usr/src/app/files/log.txt";
-const COUNTER_FILE: &str = "/usr/src/app/shared/pingpong_count.txt";
+const PING_PONG_URL: &str = "http://ping-pong-svc:3000/pings";
 
 async fn log_output() -> HttpResponse {
     let log_content = match fs::read_to_string(FILE_PATH) {
@@ -19,10 +19,19 @@ async fn log_output() -> HttpResponse {
         }
     };
 
-    let ping_count = fs::read_to_string(COUNTER_FILE)
-        .ok()
-        .and_then(|c| c.trim().parse::<usize>().ok())
-        .unwrap_or(0);
+    let ping_count = match reqwest::get(PING_PONG_URL).await {
+        Ok(response) => match response.text().await {
+            Ok(text) => text.trim().parse::<usize>().unwrap_or(0),
+            Err(e) => {
+                tracing::error!("Failed to parse ping count response: {}", e);
+                0
+            }
+        },
+        Err(e) => {
+            tracing::error!("Failed to fetch ping count from {}: {}", PING_PONG_URL, e);
+            0
+        }
+    };
 
     let response = format!("{}.\nPing / Pongs: {}", log_content, ping_count);
 

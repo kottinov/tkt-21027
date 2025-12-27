@@ -18,17 +18,10 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         fsGroup: 10001
-      volumes:
-        - name: shared-data
-          persistentVolumeClaim:
-            claimName: shared-pvc
       containers:
         - name: ping-pong
           image: ping-pong:prod
           imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - name: shared-data
-              mountPath: /usr/src/app/shared
           livenessProbe:
             httpGet:
               path: /healthz
