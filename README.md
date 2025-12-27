@@ -21,3 +21,4 @@
 ### Chapter 3
 
 - [2.1.](https://github.com/kottinov/tkt-21027/tree/2.1/log_output)
+- [2.2.](https://github.com/kottinov/tkt-21027/tree/2.2/)
