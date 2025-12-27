@@ -50,7 +50,10 @@ async fn create_todo(
 ) -> HttpResponse {
     let content = new_todo.content.trim();
 
+    tracing::info!("Received todo creation request: \"{}\" (length: {} chars)", content, content.len());
+
     if content.is_empty() {
+        tracing::warn!("Rejected todo: content is empty");
         return HttpResponse::BadRequest()
             .content_type("application/json; charset=utf-8")
             .json(serde_json::json!({
@@ -59,6 +62,11 @@ async fn create_todo(
     }
 
     if content.len() > 140 {
+        tracing::warn!(
+            "Rejected todo: content exceeds 140 character limit (length: {} chars): \"{}\"",
+            content.len(),
+            content
+        );
         return HttpResponse::BadRequest()
             .content_type("application/json; charset=utf-8")
             .json(serde_json::json!({
