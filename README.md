@@ -25,3 +25,4 @@
 - [2.3.](https://github.com/kottinov/tkt-21027/tree/2.3/)
 - [2.4.](https://github.com/kottinov/tkt-21027/tree/2.4/)
 - [2.5.](https://github.com/kottinov/tkt-21027/tree/2.5/log_output)
+- [2.6.](https://github.com/kottinov/tkt-21027/tree/2.6/)
