@@ -1,0 +1,13 @@
+apiVersion: v1
+data:
+  20251227_create_todos_table.sql: |
+    CREATE TABLE IF NOT EXISTS todos (
+        id SERIAL PRIMARY KEY,
+        content TEXT NOT NULL CHECK (length(content) > 0 AND length(content) <= 140),
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    );
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: todo-postgres-migration
+  namespace: project

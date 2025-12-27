@@ -3,7 +3,7 @@ use std::net::TcpListener;
 use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::EnvFilter;
 
-use todo_backend::run;
+use todo_backend::{connect_to_database, run};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
@@ -13,6 +13,10 @@ async fn main() -> Result<(), std::io::Error> {
         .with_timer(UtcTime::rfc_3339())
         .with_env_filter(filter)
         .init();
+
+    let pool = connect_to_database()
+        .await
+        .expect("Failed to connect to database");
 
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())
@@ -24,5 +28,5 @@ async fn main() -> Result<(), std::io::Error> {
 
     tracing::info!("Todo backend server started on port {}", port);
 
-    run(listener)?.await
+    run(listener, pool)?.await
 }
