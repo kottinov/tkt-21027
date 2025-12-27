@@ -9,12 +9,22 @@ async fn health_check() -> HttpResponse {
         .body(r#"{"status":"ok"}"#)
 }
 
+async fn index() -> HttpResponse {
+    HttpResponse::Ok()
+        .content_type("text/plain; charset=utf-8")
+        .body("the-project")
+}
+
 pub fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
     let server = HttpServer::new(|| {
         App::new()
             .wrap(tracing_actix_web::TracingLogger::default())
-            .route("/", web::get().to(health_check))
-            .route("/healthz", web::get().to(health_check))
+            .service(
+                web::scope("/the-project")
+                    .route("", web::get().to(index))
+                    .route("/", web::get().to(index))
+                    .route("/healthz", web::get().to(health_check)),
+            )
     })
     .listen(listener)?
     .run();

@@ -23,7 +23,7 @@ spec:
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /the-project/healthz
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -31,7 +31,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /the-project/healthz
               port: 3000
             initialDelaySeconds: 2
             periodSeconds: 5
