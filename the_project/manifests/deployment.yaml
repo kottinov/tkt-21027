@@ -44,9 +44,9 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 2
             failureThreshold: 3
-          env:
-            - name: PORT
-              value: "3000"
+          envFrom:
+            - configMapRef:
+                name: the-project-config
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false

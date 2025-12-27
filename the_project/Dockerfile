@@ -27,7 +27,6 @@ COPY --from=builder /app/target/release/the-project /usr/local/bin/the-project
 
 USER app
 
-ENV PORT=3000
 ENV RUST_LOG=info
 
 ENTRYPOINT ["/usr/local/bin/the-project"]

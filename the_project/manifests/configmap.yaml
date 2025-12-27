@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: project
+  name: the-project-config
+data:
+  IMAGE_REFRESH_SECS: "600"
+  IMAGE_PATH: "/usr/src/app/cache/image.jpg"
+  TODO_BACKEND_URL: "http://todo-backend-svc:3000/todos"
+  IMAGE_TIMESTAMP_PATH: "/usr/src/app/cache/image_timestamp.txt"
+  PORT: "3000"

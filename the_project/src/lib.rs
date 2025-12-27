@@ -8,15 +8,36 @@ use actix_web::dev::Server;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
 
-const IMAGE_REFRESH_SECS: u64 = 600;
-const IMAGE_PATH: &str = "/usr/src/app/cache/image.jpg";
-const TODO_BACKEND_URL: &str = "http://todo-backend-svc:3000/todos";
-const IMAGE_TIMESTAMP_PATH: &str = "/usr/src/app/cache/image_timestamp.txt";
+#[derive(Clone)]
+struct Config {
+    image_refresh_secs: u64,
+    image_path: String,
+    todo_backend_url: String,
+    image_timestamp_path: String,
+}
+
+impl Config {
+    fn from_env() -> Self {
+        Self {
+            image_refresh_secs: std::env::var("IMAGE_REFRESH_SECS")
+                .unwrap_or_else(|_| "600".to_string())
+                .parse()
+                .expect("IMAGE_REFRESH_SECS must be a valid number"),
+            image_path: std::env::var("IMAGE_PATH")
+                .unwrap_or_else(|_| "/usr/src/app/cache/image.jpg".to_string()),
+            todo_backend_url: std::env::var("TODO_BACKEND_URL")
+                .unwrap_or_else(|_| "http://todo-backend-svc:3000/todos".to_string()),
+            image_timestamp_path: std::env::var("IMAGE_TIMESTAMP_PATH")
+                .unwrap_or_else(|_| "/usr/src/app/cache/image_timestamp.txt".to_string()),
+        }
+    }
+}
 
 #[derive(Clone)]
 struct AppState {
     client: reqwest::Client,
     image_lock: Arc<Mutex<()>>,
+    config: Config,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,11 +53,11 @@ async fn health_check() -> HttpResponse {
 }
 
 async fn index(state: web::Data<AppState>) -> HttpResponse {
-    if let Err(e) = ensure_image(&state.client, &state.image_lock).await {
+    if let Err(e) = ensure_image(&state.client, &state.image_lock, &state.config).await {
         tracing::error!("Failed to ensure image: {}", e);
     }
 
-    let todos = match fetch_todos(&state.client).await {
+    let todos = match fetch_todos(&state.client, &state.config).await {
         Ok(todos) => todos,
         Err(e) => {
             tracing::error!("Failed to fetch todos: {}", e);
@@ -171,8 +192,8 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
         .body(html)
 }
 
-async fn fetch_todos(client: &reqwest::Client) -> Result<Vec<Todo>, Box<dyn std::error::Error>> {
-    let response = client.get(TODO_BACKEND_URL).send().await?;
+async fn fetch_todos(client: &reqwest::Client, config: &Config) -> Result<Vec<Todo>, Box<dyn std::error::Error>> {
+    let response = client.get(&config.todo_backend_url).send().await?;
     let todos: Vec<Todo> = response.json().await?;
     Ok(todos)
 }
@@ -185,8 +206,8 @@ fn html_escape(s: &str) -> String {
         .replace('\'', "&#x27;")
 }
 
-async fn serve_image() -> HttpResponse {
-    match fs::read(IMAGE_PATH) {
+async fn serve_image(state: web::Data<AppState>) -> HttpResponse {
+    match fs::read(&state.config.image_path) {
         Ok(image_data) => HttpResponse::Ok()
             .content_type("image/jpeg")
             .body(image_data),
@@ -200,14 +221,15 @@ async fn serve_image() -> HttpResponse {
 async fn ensure_image(
     client: &reqwest::Client,
     lock: &Arc<Mutex<()>>,
+    config: &Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if !needs_refresh()? {
+    if !needs_refresh(config)? {
         return Ok(());
     }
 
     let _guard = lock.lock().map_err(|e| format!("Lock error: {}", e))?;
 
-    if !needs_refresh()? {
+    if !needs_refresh(config)? {
         return Ok(());
     }
 
@@ -216,41 +238,44 @@ async fn ensure_image(
     let response = client.get("https://picsum.photos/1200").send().await?;
     let image_bytes = response.bytes().await?;
 
-    if let Some(parent) = Path::new(IMAGE_PATH).parent() {
+    if let Some(parent) = Path::new(&config.image_path).parent() {
         fs::create_dir_all(parent)?;
     }
 
-    fs::write(IMAGE_PATH, &image_bytes)?;
+    fs::write(&config.image_path, &image_bytes)?;
 
     let timestamp = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)?
         .as_secs();
-    fs::write(IMAGE_TIMESTAMP_PATH, timestamp.to_string())?;
+    fs::write(&config.image_timestamp_path, timestamp.to_string())?;
 
     tracing::info!("Successfully cached new image");
 
     Ok(())
 }
 
-fn needs_refresh() -> Result<bool, Box<dyn std::error::Error>> {
-    if !Path::new(IMAGE_PATH).exists() || !Path::new(IMAGE_TIMESTAMP_PATH).exists() {
+fn needs_refresh(config: &Config) -> Result<bool, Box<dyn std::error::Error>> {
+    if !Path::new(&config.image_path).exists() || !Path::new(&config.image_timestamp_path).exists() {
         return Ok(true);
     }
 
-    let timestamp_str = fs::read_to_string(IMAGE_TIMESTAMP_PATH)?;
+    let timestamp_str = fs::read_to_string(&config.image_timestamp_path)?;
     let timestamp: u64 = timestamp_str.trim().parse()?;
 
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)?
         .as_secs();
 
-    Ok(now.saturating_sub(timestamp) >= IMAGE_REFRESH_SECS)
+    Ok(now.saturating_sub(timestamp) >= config.image_refresh_secs)
 }
 
 pub fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
+    let config = Config::from_env();
+
     let state = web::Data::new(AppState {
         client: reqwest::Client::new(),
         image_lock: Arc::new(Mutex::new(())),
+        config,
     });
 
     let server = HttpServer::new(move || {
