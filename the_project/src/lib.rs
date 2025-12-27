@@ -6,15 +6,23 @@ use std::time::SystemTime;
 
 use actix_web::dev::Server;
 use actix_web::{web, App, HttpResponse, HttpServer};
+use serde::{Deserialize, Serialize};
 
-const IMAGE_PATH: &str = "/usr/src/app/cache/image.jpg";
-const IMAGE_TIMESTAMP_PATH: &str = "/usr/src/app/cache/image_timestamp.txt";
 const IMAGE_REFRESH_SECS: u64 = 600;
+const IMAGE_PATH: &str = "/usr/src/app/cache/image.jpg";
+const TODO_BACKEND_URL: &str = "http://todo-backend-svc:3000/todos";
+const IMAGE_TIMESTAMP_PATH: &str = "/usr/src/app/cache/image_timestamp.txt";
 
 #[derive(Clone)]
 struct AppState {
     client: reqwest::Client,
     image_lock: Arc<Mutex<()>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Todo {
+    id: usize,
+    content: String,
 }
 
 async fn health_check() -> HttpResponse {
@@ -28,23 +36,43 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
         tracing::error!("Failed to ensure image: {}", e);
     }
 
-    let html = r#"<!DOCTYPE html>
+    let todos = match fetch_todos(&state.client).await {
+        Ok(todos) => todos,
+        Err(e) => {
+            tracing::error!("Failed to fetch todos: {}", e);
+            Vec::new()
+        }
+    };
+
+    let todo_items_html: String = todos
+        .iter()
+        .map(|todo| {
+            format!(
+                r#"<li class="todo-item">{}</li>"#,
+                html_escape(&todo.content)
+            )
+        })
+        .collect();
+
+    let html = format!(
+        r#"<!DOCTYPE html>
     <html>
     <head>
         <title>The Project</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
-            h1 { color: #333; }
-            img { max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 4px; margin-top: 20px; }
-            .todo-section { margin: 30px 0; }
-            .todo-form { display: flex; gap: 10px; margin-bottom: 20px; }
-            .todo-input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }
-            .todo-button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-            .todo-button:hover { background-color: #0056b3; }
-            .todo-list { list-style: none; padding: 0; }
-            .todo-item { padding: 12px; margin-bottom: 8px; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; }
-            .char-counter { font-size: 12px; color: #666; margin-top: 5px; }
-            .char-counter.warning { color: #dc3545; }
+            body {{ font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }}
+            h1 {{ color: #333; }}
+            img {{ max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 4px; margin-top: 20px; }}
+            .todo-section {{ margin: 30px 0; }}
+            .todo-form {{ display: flex; gap: 10px; margin-bottom: 20px; }}
+            .todo-input {{ flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; }}
+            .todo-button {{ padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }}
+            .todo-button:hover {{ background-color: #0056b3; }}
+            .todo-list {{ list-style: none; padding: 0; }}
+            .todo-item {{ padding: 12px; margin-bottom: 8px; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; }}
+            .char-counter {{ font-size: 12px; color: #666; margin-top: 5px; }}
+            .char-counter.warning {{ color: #dc3545; }}
+            .empty-state {{ text-align: center; padding: 40px; color: #999; }}
         </style>
     </head>
     <body>
@@ -64,12 +92,10 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
             <div id="charCounter" class="char-counter">0 / 140 characters</div>
 
             <h3>Existing Todos:</h3>
-            <ul class="todo-list">
-                <li class="todo-item">Learn Kubernetes basics</li>
-                <li class="todo-item">Deploy application to cluster</li>
-                <li class="todo-item">Set up persistent volumes</li>
-                <li class="todo-item">Implement todo functionality</li>
+            <ul class="todo-list" id="todoList">
+                {todo_items}
             </ul>
+            {empty_state}
         </div>
 
         <div>
@@ -79,44 +105,84 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
         </div>
 
         <script>
-            function updateCharCounter() {
+            function updateCharCounter() {{
                 const input = document.getElementById('todoInput');
                 const counter = document.getElementById('charCounter');
                 const length = input.value.length;
                 counter.textContent = length + ' / 140 characters';
 
-                if (length > 130) {
+                if (length > 130) {{
                     counter.classList.add('warning');
-                } else {
+                }} else {{
                     counter.classList.remove('warning');
-                }
-            }
+                }}
+            }}
 
-            function addTodo() {
+            async function addTodo() {{
                 const input = document.getElementById('todoInput');
                 const todoText = input.value.trim();
 
-                if (todoText === '') {
+                if (todoText === '') {{
                     alert('Please enter a todo item');
                     return;
-                }
+                }}
 
-                if (todoText.length > 140) {
+                if (todoText.length > 140) {{
                     alert('Todo must be 140 characters or less');
                     return;
-                }
+                }}
 
-                alert('Todo will be added in the next version!');
-                input.value = '';
-                updateCharCounter();
-            }
+                try {{
+                    const response = await fetch('/todos', {{
+                        method: 'POST',
+                        headers: {{
+                            'Content-Type': 'application/json',
+                        }},
+                        body: JSON.stringify({{ content: todoText }})
+                    }});
+
+                    if (!response.ok) {{
+                        const error = await response.json();
+                        alert('Error: ' + (error.error || 'Failed to create todo'));
+                        return;
+                    }}
+
+                    input.value = '';
+                    updateCharCounter();
+
+                    window.location.reload();
+                }} catch (error) {{
+                    alert('Error creating todo: ' + error.message);
+                }}
+            }}
         </script>
     </body>
-    </html>"#;
+    </html>"#,
+        todo_items = todo_items_html,
+        empty_state = if todos.is_empty() {
+            r#"<div class="empty-state">No todos yet. Add one above!</div>"#
+        } else {
+            ""
+        }
+    );
 
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(html)
+}
+
+async fn fetch_todos(client: &reqwest::Client) -> Result<Vec<Todo>, Box<dyn std::error::Error>> {
+    let response = client.get(TODO_BACKEND_URL).send().await?;
+    let todos: Vec<Todo> = response.json().await?;
+    Ok(todos)
+}
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
 }
 
 async fn serve_image() -> HttpResponse {
