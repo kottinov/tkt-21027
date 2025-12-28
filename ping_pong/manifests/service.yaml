@@ -4,7 +4,7 @@ metadata:
   namespace: exercises
   name: ping-pong-svc
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: ping-pong
   ports:
