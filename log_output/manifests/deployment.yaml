@@ -30,8 +30,7 @@ spec:
                 path: information.txt
       containers:
         - name: log-writer
-          image: log-writer:prod
-          imagePullPolicy: IfNotPresent
+          image: gcr.io/useful-device-482607-p0/log-writer:latest
           volumeMounts:
             - name: shared-logs
               mountPath: /usr/src/app/files
@@ -41,16 +40,8 @@ spec:
             capabilities:
               drop:
                 - ALL
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 250m
-              memory: 128Mi
         - name: log-reader
-          image: log-reader:prod
-          imagePullPolicy: IfNotPresent
+          image: gcr.io/useful-device-482607-p0/log-reader:latest
           env:
             - name: MESSAGE
               valueFrom:
@@ -68,10 +59,3 @@ spec:
             capabilities:
               drop:
                 - ALL
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 250m
-              memory: 128Mi

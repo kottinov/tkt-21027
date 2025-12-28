@@ -15,6 +15,12 @@ async fn health_check() -> HttpResponse {
         .body(r#"{"status":"ok"}"#)
 }
 
+async fn root() -> HttpResponse {
+    HttpResponse::Ok()
+        .content_type("text/plain; charset=utf-8")
+        .body("Ping-pong service is running. Use /pingpong to increment counter.")
+}
+
 async fn ping_pong(data: web::Data<AppState>) -> HttpResponse {
     let count = match increment_counter(&data.db_pool).await {
         Ok(count) => count,
@@ -99,6 +105,7 @@ pub fn run(listener: TcpListener, pool: PgPool) -> Result<Server, std::io::Error
         App::new()
             .app_data(state.clone())
             .wrap(tracing_actix_web::TracingLogger::default())
+            .route("/", web::get().to(root))
             .route("/pingpong", web::get().to(ping_pong))
             .route("/pings", web::get().to(get_pings))
             .route("/healthz", web::get().to(health_check))

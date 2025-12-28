@@ -17,12 +17,22 @@ async fn status(data: web::Data<AppState>) -> HttpResponse {
         .body(body)
 }
 
+async fn root(data: web::Data<AppState>) -> HttpResponse {
+    let timestamp = Utc::now().to_rfc3339();
+    let body = format!("{} {}", timestamp, data.instance_id);
+
+    HttpResponse::Ok()
+        .content_type("text/plain; charset=utf-8")
+        .body(body)
+}
+
 pub fn run(listener: TcpListener, instance_id: String) -> Result<Server, std::io::Error> {
     let state = web::Data::new(AppState { instance_id });
 
     let server = HttpServer::new(move || {
         App::new()
             .app_data(state.clone())
+            .route("/", web::get().to(root))
             .route("/log-output", web::get().to(status))
     })
     .listen(listener)?

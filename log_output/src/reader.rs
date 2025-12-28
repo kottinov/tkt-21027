@@ -7,7 +7,7 @@ use tracing_subscriber::EnvFilter;
 
 const FILE_PATH: &str = "/usr/src/app/files/log.txt";
 const CONFIG_FILE_PATH: &str = "/usr/src/app/config/information.txt";
-const PING_PONG_URL: &str = "http://ping-pong-svc:3000/pings";
+const PING_PONG_URL: &str = "http://ping-pong-svc:80/pings";
 
 async fn log_output() -> HttpResponse {
     let config_content = match fs::read_to_string(CONFIG_FILE_PATH) {
