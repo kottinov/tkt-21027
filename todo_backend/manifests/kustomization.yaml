@@ -7,3 +7,4 @@ resources:
   - migration-job.yaml
   - deployment.yaml
   - service.yaml
+  - backup-cronjob.yaml
