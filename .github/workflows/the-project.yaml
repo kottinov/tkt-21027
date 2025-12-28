@@ -2,6 +2,9 @@ name: Release the-project
 
 on:
   push:
+    paths:
+      - 'the_project/**'
+      - '.github/workflows/the-project.yaml'
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
@@ -47,6 +50,7 @@ jobs:
         run: echo "IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
 
       - name: Build
+        working-directory: ./the_project
         run: docker build --platform linux/amd64 --tag $IMAGE_TAG .
 
       - name: Publish
@@ -56,7 +60,7 @@ jobs:
         uses: imranismail/setup-kustomize@v2.1.0
 
       - name: Deploy
-        working-directory: ./manifests
+        working-directory: ./the_project/manifests
         run: |-
           kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
           kustomize build . | kubectl apply -f -
