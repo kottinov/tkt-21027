@@ -21,8 +21,8 @@ spec:
         fsGroup: 10001
       containers:
         - name: ping-pong
-          image: ping-pong:prod
-          imagePullPolicy: IfNotPresent
+          image: gcr.io/useful-device-482607-p0/ping-pong:latest
+          imagePullPolicy: Always
           livenessProbe:
             httpGet:
               path: /healthz
@@ -48,10 +48,3 @@ spec:
             capabilities:
               drop:
                 - ALL
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 250m
-              memory: 128Mi
