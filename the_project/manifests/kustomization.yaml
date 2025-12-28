@@ -5,6 +5,7 @@ resources:
   - configmap.yaml
   - deployment.yaml
   - service.yaml
+  - backendconfig.yaml
   - ingress.yaml
 images:
   - name: PROJECT/IMAGE

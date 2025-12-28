@@ -7,4 +7,9 @@ resources:
   - migration-job.yaml
   - deployment.yaml
   - service.yaml
+  - backendconfig.yaml
   - backup-cronjob.yaml
+images:
+  - name: todo-backend:prod
+    newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/todo-backend
+    newTag: latest

@@ -3,6 +3,8 @@ kind: Service
 metadata:
   namespace: project
   name: the-project-svc
+  annotations:
+    cloud.google.com/backend-config: '{"default": "the-project-backendconfig"}'
 spec:
   type: ClusterIP
   selector:
