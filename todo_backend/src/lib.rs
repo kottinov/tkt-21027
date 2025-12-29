@@ -10,6 +10,7 @@ use sqlx::postgres::PgPool;
 pub struct Todo {
     pub id: i32,
     pub content: String,
+    pub done: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,21 +94,21 @@ async fn create_todo(
 }
 
 async fn fetch_todos(pool: &PgPool) -> Result<Vec<Todo>, sqlx::Error> {
-    let todos = sqlx::query_as::<_, (i32, String)>(
-        "SELECT id, content FROM todos ORDER BY created_at DESC"
+    let todos = sqlx::query_as::<_, (i32, String, bool)>(
+        "SELECT id, content, done FROM todos ORDER BY created_at DESC"
     )
     .fetch_all(pool)
     .await?
     .into_iter()
-    .map(|(id, content)| Todo { id, content })
+    .map(|(id, content, done)| Todo { id, content, done })
     .collect();
 
     Ok(todos)
 }
 
 async fn insert_todo(pool: &PgPool, content: &str) -> Result<Todo, sqlx::Error> {
-    let row = sqlx::query_as::<_, (i32, String)>(
-        "INSERT INTO todos (content) VALUES ($1) RETURNING id, content"
+    let row = sqlx::query_as::<_, (i32, String, bool)>(
+        "INSERT INTO todos (content) VALUES ($1) RETURNING id, content, done"
     )
     .bind(content)
     .fetch_one(pool)
@@ -116,6 +117,48 @@ async fn insert_todo(pool: &PgPool, content: &str) -> Result<Todo, sqlx::Error> 
     Ok(Todo {
         id: row.0,
         content: row.1,
+        done: row.2,
+    })
+}
+
+async fn update_todo(
+    state: web::Data<AppState>,
+    id: web::Path<i32>,
+) -> HttpResponse {
+    let todo_id = id.into_inner();
+
+    tracing::info!("Marking todo {} as done", todo_id);
+
+    match mark_todo_done(&state.db_pool, todo_id).await {
+        Ok(todo) => {
+            tracing::info!("Successfully marked todo {} as done", todo.id);
+            HttpResponse::Ok()
+                .content_type("application/json; charset=utf-8")
+                .json(todo)
+        }
+        Err(e) => {
+            tracing::error!("Failed to update todo {}: {}", todo_id, e);
+            HttpResponse::NotFound()
+                .content_type("application/json; charset=utf-8")
+                .json(serde_json::json!({
+                    "error": "Todo not found"
+                }))
+        }
+    }
+}
+
+async fn mark_todo_done(pool: &PgPool, id: i32) -> Result<Todo, sqlx::Error> {
+    let row = sqlx::query_as::<_, (i32, String, bool)>(
+        "UPDATE todos SET done = TRUE WHERE id = $1 RETURNING id, content, done"
+    )
+    .bind(id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(Todo {
+        id: row.0,
+        content: row.1,
+        done: row.2,
     })
 }
 
@@ -158,6 +201,7 @@ pub fn run(listener: TcpListener, pool: PgPool) -> Result<Server, std::io::Error
             .wrap(tracing_actix_web::TracingLogger::default())
             .route("/todos", web::get().to(get_todos))
             .route("/todos", web::post().to(create_todo))
+            .route("/todos/{id}", web::put().to(update_todo))
             .route("/healthz", web::get().to(health_check))
     })
     .listen(listener)?

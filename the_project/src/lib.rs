@@ -44,6 +44,7 @@ struct AppState {
 struct Todo {
     id: usize,
     content: String,
+    done: bool,
 }
 
 async fn health_check() -> HttpResponse {
@@ -68,9 +69,17 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
     let todo_items_html: String = todos
         .iter()
         .map(|todo| {
+            let done_class = if todo.done { " done" } else { "" };
+            let done_button = if !todo.done {
+                format!(r#"<button class="done-button" onclick="markDone({})">Done</button>"#, todo.id)
+            } else {
+                String::from(r#"<span class="done-badge">✓ Done</span>"#)
+            };
             format!(
-                r#"<li class="todo-item">{}</li>"#,
-                html_escape(&todo.content)
+                r#"<li class="todo-item{}">{}{}</li>"#,
+                done_class,
+                html_escape(&todo.content),
+                done_button
             )
         })
         .collect();
@@ -90,7 +99,11 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
             .todo-button {{ padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }}
             .todo-button:hover {{ background-color: #0056b3; }}
             .todo-list {{ list-style: none; padding: 0; }}
-            .todo-item {{ padding: 12px; margin-bottom: 8px; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; }}
+            .todo-item {{ padding: 12px; margin-bottom: 8px; background-color: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }}
+            .todo-item.done {{ background-color: #e8f5e9; border-left-color: #4caf50; text-decoration: line-through; color: #666; }}
+            .done-button {{ padding: 6px 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }}
+            .done-button:hover {{ background-color: #218838; }}
+            .done-badge {{ color: #28a745; font-weight: bold; }}
             .char-counter {{ font-size: 12px; color: #666; margin-top: 5px; }}
             .char-counter.warning {{ color: #dc3545; }}
             .empty-state {{ text-align: center; padding: 40px; color: #999; }}
@@ -174,6 +187,24 @@ async fn index(state: web::Data<AppState>) -> HttpResponse {
                     window.location.reload();
                 }} catch (error) {{
                     alert('Error creating todo: ' + error.message);
+                }}
+            }}
+
+            async function markDone(id) {{
+                try {{
+                    const response = await fetch(`/todos/${{id}}`, {{
+                        method: 'PUT'
+                    }});
+
+                    if (!response.ok) {{
+                        const error = await response.json();
+                        alert('Error: ' + (error.error || 'Failed to mark todo as done'));
+                        return;
+                    }}
+
+                    window.location.reload();
+                }} catch (error) {{
+                    alert('Error marking todo as done: ' + error.message);
                 }}
             }}
         </script>

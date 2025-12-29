@@ -27,6 +27,9 @@ spec:
               done
 
               echo "Running migrations..."
-              psql postgresql://postgres:postgres@todo-postgres-stset-0.todo-postgres-svc:5432/todos -f /migrations/20251227_create_todos_table.sql
+              for migration_file in /migrations/*.sql; do
+                echo "Running migration: $migration_file"
+                psql postgresql://postgres:postgres@todo-postgres-stset-0.todo-postgres-svc:5432/todos -f "$migration_file"
+              done
 
               echo "Migration completed successfully"
