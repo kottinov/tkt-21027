@@ -73,4 +73,6 @@ Kubernetes manifests and configurations are maintained in a separate repository:
 3. Workflows update kustomization files in the GitOps repository
 4. ArgoCD detects changes in GitOps repository and syncs to Kubernetes clusters
 
-# Test GitOps setup
+# Chapter 6
+
+- [5.1.](https://github.com/kottinov/tkt-21027/tree/5.1/)

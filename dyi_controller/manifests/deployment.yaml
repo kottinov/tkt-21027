@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dummysite-controller
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dummysite-controller
+  template:
+    metadata:
+      labels:
+        app: dummysite-controller
+    spec:
+      serviceAccountName: dummysite-controller
+      containers:
+        - name: controller
+          image: dummysite-controller:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RUST_LOG
+              value: info
