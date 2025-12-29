@@ -98,3 +98,4 @@ jobs:
           message: Deploy ${{ env.ENVIRONMENT }} version ${{ env.TAG }}
           pull: '--rebase --autostash'
           cwd: './gitops-repo'
+          github_token: ${{ secrets.GITOPS_PUSH_TOKEN }}
