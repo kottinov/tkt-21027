@@ -2,6 +2,8 @@ name: Release the-project
 
 on:
   push:
+    branches:
+      - '**'
     paths:
       - 'the_project/**'
       - '.github/workflows/the-project.yaml'
