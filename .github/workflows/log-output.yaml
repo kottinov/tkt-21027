@@ -8,6 +8,9 @@ on:
       - 'log_output/**'
       - '.github/workflows/log-output.yaml'
 
+permissions:
+  contents: write
+
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: dwk-cluster
