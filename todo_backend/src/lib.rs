@@ -21,6 +21,7 @@ pub struct CreateTodo {
 #[derive(Clone)]
 struct AppState {
     db_pool: PgPool,
+    nats_client: async_nats::Client,
 }
 
 async fn health_check() -> HttpResponse {
@@ -78,6 +79,15 @@ async fn create_todo(
     match insert_todo(&state.db_pool, content).await {
         Ok(todo) => {
             tracing::info!("Created new todo with id {}: {}", todo.id, todo.content);
+
+            let message = serde_json::json!({
+                "action": "created",
+                "todo": todo
+            });
+            if let Err(e) = state.nats_client.publish("todo.events", message.to_string().into()).await {
+                tracing::warn!("Failed to publish todo creation to NATS: {}", e);
+            }
+
             HttpResponse::Created()
                 .content_type("application/json; charset=utf-8")
                 .json(todo)
@@ -132,6 +142,15 @@ async fn update_todo(
     match mark_todo_done(&state.db_pool, todo_id).await {
         Ok(todo) => {
             tracing::info!("Successfully marked todo {} as done", todo.id);
+
+            let message = serde_json::json!({
+                "action": "updated",
+                "todo": todo
+            });
+            if let Err(e) = state.nats_client.publish("todo.events", message.to_string().into()).await {
+                tracing::warn!("Failed to publish todo update to NATS: {}", e);
+            }
+
             HttpResponse::Ok()
                 .content_type("application/json; charset=utf-8")
                 .json(todo)
@@ -189,8 +208,20 @@ pub async fn connect_to_database() -> Result<PgPool, sqlx::Error> {
     Ok(pool)
 }
 
-pub fn run(listener: TcpListener, pool: PgPool) -> Result<Server, std::io::Error> {
-    let state = web::Data::new(AppState { db_pool: pool });
+pub async fn connect_to_nats() -> Result<async_nats::Client, async_nats::ConnectError> {
+    let nats_url = std::env::var("NATS_URL").unwrap_or_else(|_| "nats://my-nats:4222".to_string());
+
+    tracing::info!("Connecting to NATS at {}", nats_url);
+
+    let client = async_nats::connect(&nats_url).await?;
+
+    tracing::info!("Connected to NATS successfully");
+
+    Ok(client)
+}
+
+pub fn run(listener: TcpListener, pool: PgPool, nats_client: async_nats::Client) -> Result<Server, std::io::Error> {
+    let state = web::Data::new(AppState { db_pool: pool, nats_client });
 
     let server = HttpServer::new(move || {
         let cors = Cors::permissive();

@@ -1,0 +1,12 @@
+nats:
+  jetstream:
+    enabled: true
+
+config:
+  cluster:
+    enabled: false
+  jetstream:
+    enabled: true
+
+auth:
+  enabled: false

@@ -3,7 +3,7 @@ use std::net::TcpListener;
 use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::EnvFilter;
 
-use todo_backend::{connect_to_database, run};
+use todo_backend::{connect_to_database, connect_to_nats, run};
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
@@ -18,6 +18,10 @@ async fn main() -> Result<(), std::io::Error> {
         .await
         .expect("Failed to connect to database");
 
+    let nats_client = connect_to_nats()
+        .await
+        .expect("Failed to connect to NATS");
+
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())
         .parse::<u16>()
@@ -28,5 +32,5 @@ async fn main() -> Result<(), std::io::Error> {
 
     tracing::info!("Todo backend server started on port {}", port);
 
-    run(listener, pool)?.await
+    run(listener, pool, nats_client)?.await
 }
