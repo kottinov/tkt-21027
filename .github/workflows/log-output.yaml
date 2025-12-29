@@ -1,0 +1,64 @@
+name: Release log-output
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'log_output/**'
+      - '.github/workflows/log-output.yaml'
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: dwk-repository
+  BRANCH: ${{ github.ref_name }}
+
+jobs:
+  build-publish-deploy:
+    name: Build, Publish and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker to use gcloud
+        run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Build and publish log-writer
+        working-directory: ./log_output
+        run: |-
+          docker build --platform linux/amd64 --tag "$REGISTRY/$PROJECT_ID/$REPOSITORY/log-writer:$GITHUB_SHA" -f Dockerfile.writer .
+          docker push "$REGISTRY/$PROJECT_ID/$REPOSITORY/log-writer:$GITHUB_SHA"
+
+      - name: Build and publish log-reader
+        working-directory: ./log_output
+        run: |-
+          docker build --platform linux/amd64 --tag "$REGISTRY/$PROJECT_ID/$REPOSITORY/log-reader:$GITHUB_SHA" -f Dockerfile.reader .
+          docker push "$REGISTRY/$PROJECT_ID/$REPOSITORY/log-reader:$GITHUB_SHA"
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2.1.0
+
+      - name: Update image tags
+        working-directory: ./log_output/manifests
+        run: |-
+          kustomize edit set image LOG_WRITER_IMAGE=$REGISTRY/$PROJECT_ID/$REPOSITORY/log-writer:$GITHUB_SHA
+          kustomize edit set image LOG_READER_IMAGE=$REGISTRY/$PROJECT_ID/$REPOSITORY/log-reader:$GITHUB_SHA
+
+      - name: Commit kustomization.yaml to GitHub
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'log_output/manifests/kustomization.yaml'
+          message: New log-output version ${{ github.sha }}

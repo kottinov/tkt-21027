@@ -30,7 +30,7 @@ spec:
                 path: information.txt
       containers:
         - name: log-writer
-          image: gcr.io/useful-device-482607-p0/log-writer:latest
+          image: LOG_WRITER_IMAGE
           volumeMounts:
             - name: shared-logs
               mountPath: /usr/src/app/files
@@ -41,7 +41,7 @@ spec:
               drop:
                 - ALL
         - name: log-reader
-          image: gcr.io/useful-device-482607-p0/log-reader:latest
+          image: LOG_READER_IMAGE
           env:
             - name: MESSAGE
               valueFrom:

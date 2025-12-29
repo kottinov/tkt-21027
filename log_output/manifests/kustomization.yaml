@@ -5,3 +5,10 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+images:
+  - name: LOG_WRITER_IMAGE
+    newName: gcr.io/useful-device-482607-p0/log-writer
+    newTag: latest
+  - name: LOG_READER_IMAGE
+    newName: gcr.io/useful-device-482607-p0/log-reader
+    newTag: latest
