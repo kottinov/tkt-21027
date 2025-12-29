@@ -8,7 +8,7 @@ resources:
 images:
 - name: LOG_READER_IMAGE
   newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/log-reader
-  newTag: 85a4f9c01634dbae3939b678d58d6ba556fe5374
+  newTag: d436cf94349b7328c56753159302284674834ff3
 - name: LOG_WRITER_IMAGE
   newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/log-writer
-  newTag: 85a4f9c01634dbae3939b678d58d6ba556fe5374
+  newTag: d436cf94349b7328c56753159302284674834ff3
