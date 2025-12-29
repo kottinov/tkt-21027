@@ -11,4 +11,4 @@ resources:
 images:
 - name: PROJECT/IMAGE
   newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/the-project
-  newTag: main-d7779bca906ff0b133ec0977ed27320c47a78842
+  newTag: main-9b571149151c6172ed9845395317cb08ef93a0d4
