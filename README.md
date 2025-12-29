@@ -61,3 +61,4 @@
 - [4.8.](https://github.com/kottinov/tkt-21027/tree/4.8/)
 - [4.8. assets](https://github.com/kottinov/tkt-21027/tree/4.8/assets/image.png)
 - [4.9.](https://github.com/kottinov/tkt-21027/tree/4.9/project)
+# Test GitOps setup
