@@ -61,4 +61,16 @@
 - [4.8.](https://github.com/kottinov/tkt-21027/tree/4.8/)
 - [4.8. assets](https://github.com/kottinov/tkt-21027/tree/4.8/assets/image.png)
 - [4.9.](https://github.com/kottinov/tkt-21027/tree/4.9/project)
+- [4.10.](https://github.com/kottinov/tkt-21027-gitops) - GitOps repository (separate from code repo)
+
+## GitOps Repository
+
+Kubernetes manifests and configurations are maintained in a separate repository: [tkt-21027-gitops](https://github.com/kottinov/tkt-21027-gitops)
+
+### Deployment Flow
+1. Code changes pushed to this repository trigger GitHub Actions workflows
+2. Workflows build and push Docker images to Google Artifact Registry
+3. Workflows update kustomization files in the GitOps repository
+4. ArgoCD detects changes in GitOps repository and syncs to Kubernetes clusters
+
 # Test GitOps setup
