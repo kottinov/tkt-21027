@@ -1,0 +1,81 @@
+name: Release todo-backend
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - 'todo_backend/**'
+      - '.github/workflows/todo-backend.yaml'
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: dwk-repository
+  IMAGE: todo-backend
+  SERVICE: todo-backend
+  BRANCH: ${{ github.ref_name }}
+
+jobs:
+  build-publish-deploy:
+    name: Build, Publish and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Use gcloud CLI
+        run: gcloud info
+
+      - name: Configure Docker to use gcloud
+        run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: '${{ env.GKE_CLUSTER }}'
+          project_id: '${{ env.PROJECT_ID }}'
+          location: '${{ env.GKE_ZONE }}'
+
+      - name: Form the image name
+        run: echo "IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: Build
+        working-directory: ./todo_backend
+        run: docker build --platform linux/amd64 --tag $IMAGE_TAG .
+
+      - name: Publish
+        run: docker push $IMAGE_TAG
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2.1.0
+
+      - name: Set namespace
+        run: |-
+          if [ "$BRANCH" = "main" ]; then
+            echo "NAMESPACE=project" >> $GITHUB_ENV
+          else
+            echo "NAMESPACE=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy
+        working-directory: ./todo_backend/manifests
+        run: |-
+          kubectl create namespace $NAMESPACE || true
+          kubectl config set-context --current --namespace=$NAMESPACE
+          kustomize edit set namespace $NAMESPACE
+          kustomize edit set image todo-backend:prod=$IMAGE_TAG
+          kustomize build . | kubectl apply -f -
+          kubectl rollout status deployment/$SERVICE -n $NAMESPACE --timeout=5m
+          kubectl get services -o wide
