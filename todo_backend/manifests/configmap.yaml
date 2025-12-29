@@ -10,4 +10,4 @@ data:
   POSTGRES_DB: "todos"
   POSTGRES_USER: "postgres"
   POSTGRES_PASSWORD: "postgres"
-  NATS_URL: "nats://my-nats:4222"
+  NATS_URL: "nats://my-nats.default.svc.cluster.local:4222"

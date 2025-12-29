@@ -18,7 +18,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: NATS_URL
-              value: "nats://my-nats:4222"
+              value: "nats://my-nats.default.svc.cluster.local:4222"
             - name: TELEGRAM_BOT_TOKEN
               valueFrom:
                 secretKeyRef:
