@@ -75,5 +75,5 @@ jobs:
           kustomize edit set namespace $NAMESPACE
           kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
           kustomize build . | kubectl apply -f -
-          kubectl rollout status deployment $SERVICE
+          kubectl rollout status rollout/$SERVICE -n $NAMESPACE --timeout=5m
           kubectl get services -o wide
