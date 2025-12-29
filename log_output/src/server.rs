@@ -6,11 +6,21 @@ use chrono::Utc;
 
 struct AppState {
     instance_id: String,
+    greeter_url: String,
 }
 
 async fn status(data: web::Data<AppState>) -> HttpResponse {
     let timestamp = Utc::now().to_rfc3339();
-    let body = format!("{} {}", timestamp, data.instance_id);
+
+    let greeting = match reqwest::get(&data.greeter_url).await {
+        Ok(response) => match response.text().await {
+            Ok(text) => text,
+            Err(_) => "Hello".to_string(),
+        },
+        Err(_) => "Hello".to_string(),
+    };
+
+    let body = format!("{}: {} {}", greeting, timestamp, data.instance_id);
 
     HttpResponse::Ok()
         .content_type("text/plain; charset=utf-8")
@@ -19,15 +29,24 @@ async fn status(data: web::Data<AppState>) -> HttpResponse {
 
 async fn root(data: web::Data<AppState>) -> HttpResponse {
     let timestamp = Utc::now().to_rfc3339();
-    let body = format!("{} {}", timestamp, data.instance_id);
+
+    let greeting = match reqwest::get(&data.greeter_url).await {
+        Ok(response) => match response.text().await {
+            Ok(text) => text,
+            Err(_) => "Hello".to_string(),
+        },
+        Err(_) => "Hello".to_string(),
+    };
+
+    let body = format!("{}: {} {}", greeting, timestamp, data.instance_id);
 
     HttpResponse::Ok()
         .content_type("text/plain; charset=utf-8")
         .body(body)
 }
 
-pub fn run(listener: TcpListener, instance_id: String) -> Result<Server, std::io::Error> {
-    let state = web::Data::new(AppState { instance_id });
+pub fn run(listener: TcpListener, instance_id: String, greeter_url: String) -> Result<Server, std::io::Error> {
+    let state = web::Data::new(AppState { instance_id, greeter_url });
 
     let server = HttpServer::new(move || {
         App::new()

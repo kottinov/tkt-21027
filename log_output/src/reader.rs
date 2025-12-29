@@ -8,6 +8,7 @@ use tracing_subscriber::EnvFilter;
 const FILE_PATH: &str = "/usr/src/app/files/log.txt";
 const CONFIG_FILE_PATH: &str = "/usr/src/app/config/information.txt";
 const PING_PONG_URL: &str = "http://ping-pong-svc:80/pings";
+const GREETER_URL: &str = "http://greeter-svc:80/";
 
 async fn health_check() -> HttpResponse {
     match reqwest::get(PING_PONG_URL).await {
@@ -67,9 +68,23 @@ async fn log_output() -> HttpResponse {
         }
     };
 
+    let greeting = match reqwest::get(GREETER_URL).await {
+        Ok(response) => match response.text().await {
+            Ok(text) => text,
+            Err(e) => {
+                tracing::error!("Failed to parse greeter response: {}", e);
+                "Hello".to_string()
+            }
+        },
+        Err(e) => {
+            tracing::error!("Failed to fetch greeting from {}: {}", GREETER_URL, e);
+            "Hello".to_string()
+        }
+    };
+
     let response = format!(
-        "file content: {}\nenv variable: MESSAGE={}\n{}.\nPing / Pongs: {}",
-        config_content, message, log_content, ping_count
+        "{}\nfile content: {}\nenv variable: MESSAGE={}\n{}.\nPing / Pongs: {}",
+        greeting, config_content, message, log_content, ping_count
     );
 
     HttpResponse::Ok()

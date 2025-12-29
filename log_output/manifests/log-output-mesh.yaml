@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-output-config
+  namespace: default
+data:
+  information.txt: "Service Mesh Edition"
+  MESSAGE: "Hello from the mesh!"
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: log-output
+  labels:
+    app: log-output
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-output
+  template:
+    metadata:
+      labels:
+        app: log-output
+    spec:
+      volumes:
+        - name: shared-logs
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: log-output-config
+            items:
+              - key: information.txt
+                path: information.txt
+      containers:
+        - name: log-writer
+          image: log-writer:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /usr/src/app/files
+        - name: log-reader
+          image: log-reader:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-config
+                  key: MESSAGE
+          volumeMounts:
+            - name: shared-logs
+              mountPath: /usr/src/app/files
+            - name: config-volume
+              mountPath: /usr/src/app/config
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            httpGet:
+              path: /healthz
+              port: 3000
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: log-output-svc
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: log-output
+  ports:
+    - port: 80
+      protocol: TCP
+      targetPort: 3000

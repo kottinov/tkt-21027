@@ -77,3 +77,4 @@ Kubernetes manifests and configurations are maintained in a separate repository:
 
 - [5.1.](https://github.com/kottinov/tkt-21027/tree/5.1/dyi_controller)
 - [5.2.](https://github.com/kottinov/tkt-21027/tree/5.2/assets/image.png)
+- [5.3.](https://github.com/kottinov/tkt-21027/tree/5.3/log_output)
