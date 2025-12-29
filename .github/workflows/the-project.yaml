@@ -8,6 +8,9 @@ on:
       - 'the_project/**'
       - '.github/workflows/the-project.yaml'
 
+permissions:
+  contents: write
+
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: dwk-cluster
@@ -41,13 +44,6 @@ jobs:
       - name: Configure Docker to use gcloud
         run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
 
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v2
-        with:
-          cluster_name: '${{ env.GKE_CLUSTER }}'
-          project_id: '${{ env.PROJECT_ID }}'
-          location: '${{ env.GKE_ZONE }}'
-
       - name: Form the image name
         run: echo "IMAGE_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
 
@@ -61,29 +57,12 @@ jobs:
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
-      - name: Install Argo Rollouts
-        run: |-
-          kubectl create namespace argo-rollouts || true
-          kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
-          echo "Waiting for Argo Rollouts controller to be ready..."
-          kubectl wait --for=condition=available --timeout=120s deployment/argo-rollouts -n argo-rollouts
-
-      - name: Set namespace
-        run: |-
-          if [ "$BRANCH" = "main" ]; then
-            echo "NAMESPACE=project" >> $GITHUB_ENV
-          else
-            echo "NAMESPACE=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-          fi
-
-      - name: Deploy
+      - name: Update image tag
         working-directory: ./the_project/manifests
-        run: |-
-          kubectl create namespace $NAMESPACE || true
-          kubectl config set-context --current --namespace=$NAMESPACE
-          kustomize edit set namespace $NAMESPACE
-          kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
-          kustomize build . | kubectl apply -f -
-          echo "Verifying rollout was created..."
-          kubectl get rollout $SERVICE -n $NAMESPACE
-          kubectl get services -o wide
+        run: kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
+
+      - name: Commit kustomization.yaml to GitHub
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'the_project/manifests/kustomization.yaml'
+          message: New the-project version ${{ github.sha }}
