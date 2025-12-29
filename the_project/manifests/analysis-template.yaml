@@ -14,4 +14,6 @@ spec:
       prometheus:
         address: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
         query: |
-          sum(rate(kube_pod_container_status_restarts_total{namespace="project",pod=~"the-project-.*"}[2m]))
+          scalar(
+            sum(rate(kube_pod_container_status_restarts_total{namespace="project",pod=~"the-project-.*"}[2m]))
+          )
