@@ -3,7 +3,8 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - configmap.yaml
-  - deployment.yaml
+  - rollout.yaml
+  - analysis-template.yaml
   - service.yaml
   - backendconfig.yaml
   - ingress.yaml
