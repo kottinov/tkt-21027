@@ -90,3 +90,4 @@ jobs:
         with:
           add: 'project/overlays/${{ env.ENVIRONMENT }}/kustomization.yaml'
           message: Deploy ${{ env.ENVIRONMENT }} version ${{ env.TAG }}
+          pull: '--rebase --autostash'
