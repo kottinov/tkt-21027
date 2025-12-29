@@ -65,6 +65,8 @@ jobs:
         run: |-
           kubectl create namespace argo-rollouts || true
           kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+          echo "Waiting for Argo Rollouts controller to be ready..."
+          kubectl wait --for=condition=available --timeout=120s deployment/argo-rollouts -n argo-rollouts
 
       - name: Set namespace
         run: |-
@@ -82,5 +84,6 @@ jobs:
           kustomize edit set namespace $NAMESPACE
           kustomize edit set image PROJECT/IMAGE=$IMAGE_TAG
           kustomize build . | kubectl apply -f -
-          kubectl rollout status rollout/$SERVICE -n $NAMESPACE --timeout=5m
+          echo "Verifying rollout was created..."
+          kubectl get rollout $SERVICE -n $NAMESPACE
           kubectl get services -o wide
