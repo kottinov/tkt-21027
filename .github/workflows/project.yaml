@@ -91,11 +91,16 @@ jobs:
           kustomize edit set image todo-backend:prod=$TODO_BACKEND_IMAGE
           kustomize edit set image broadcaster:prod=$BROADCASTER_IMAGE
 
-      - name: Commit and push to GitOps repository
+      - name: Configure Git credentials for GitOps repo
         working-directory: ./gitops-repo
         run: |-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITOPS_PUSH_TOKEN }}@github.com/kottinov/tkt-21027-gitops.git
+
+      - name: Commit and push to GitOps repository
+        working-directory: ./gitops-repo
+        run: |-
           git add overlays/${{ env.ENVIRONMENT }}/kustomization.yaml
           git commit -m "Deploy ${{ env.ENVIRONMENT }} version ${{ env.TAG }}" || echo "No changes to commit"
           git pull --rebase origin main
