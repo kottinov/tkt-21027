@@ -1,14 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - configmap.yaml
-  - deployment.yaml
-  - service.yaml
-  - ingress.yaml
+- configmap.yaml
+- deployment.yaml
+- service.yaml
+- ingress.yaml
 images:
-  - name: LOG_WRITER_IMAGE
-    newName: gcr.io/useful-device-482607-p0/log-writer
-    newTag: latest
-  - name: LOG_READER_IMAGE
-    newName: gcr.io/useful-device-482607-p0/log-reader
-    newTag: latest
+- name: LOG_READER_IMAGE
+  newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/log-reader
+  newTag: 85a4f9c01634dbae3939b678d58d6ba556fe5374
+- name: LOG_WRITER_IMAGE
+  newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/log-writer
+  newTag: 85a4f9c01634dbae3939b678d58d6ba556fe5374
