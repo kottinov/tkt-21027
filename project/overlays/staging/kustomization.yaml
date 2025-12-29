@@ -12,10 +12,10 @@ patches:
 images:
 - name: PROJECT/IMAGE
   newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/the-project
-  newTag: a26ce6f757b1a8c93e949cadfa5aa644fc4cc936
+  newTag: d3cc6b29d52f87c596c5d23914f9768e773ae53b
 - name: broadcaster:prod
   newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/broadcaster
-  newTag: a26ce6f757b1a8c93e949cadfa5aa644fc4cc936
+  newTag: d3cc6b29d52f87c596c5d23914f9768e773ae53b
 - name: todo-backend:prod
   newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/todo-backend
-  newTag: a26ce6f757b1a8c93e949cadfa5aa644fc4cc936
+  newTag: d3cc6b29d52f87c596c5d23914f9768e773ae53b
