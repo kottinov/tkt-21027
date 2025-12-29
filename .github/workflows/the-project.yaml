@@ -61,6 +61,11 @@ jobs:
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v2.1.0
 
+      - name: Install Argo Rollouts
+        run: |-
+          kubectl create namespace argo-rollouts || true
+          kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+
       - name: Set namespace
         run: |-
           if [ "$BRANCH" = "main" ]; then
