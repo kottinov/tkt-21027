@@ -9,6 +9,29 @@ const FILE_PATH: &str = "/usr/src/app/files/log.txt";
 const CONFIG_FILE_PATH: &str = "/usr/src/app/config/information.txt";
 const PING_PONG_URL: &str = "http://ping-pong-svc:80/pings";
 
+async fn health_check() -> HttpResponse {
+    match reqwest::get(PING_PONG_URL).await {
+        Ok(response) => {
+            if response.status().is_success() {
+                HttpResponse::Ok()
+                    .content_type("application/json; charset=utf-8")
+                    .body(r#"{"status":"ok"}"#)
+            } else {
+                tracing::error!("Health check failed: ping-pong service returned status {}", response.status());
+                HttpResponse::ServiceUnavailable()
+                    .content_type("application/json; charset=utf-8")
+                    .body(r#"{"status":"error","message":"ping-pong service not available"}"#)
+            }
+        }
+        Err(e) => {
+            tracing::error!("Health check failed: unable to connect to ping-pong service: {}", e);
+            HttpResponse::ServiceUnavailable()
+                .content_type("application/json; charset=utf-8")
+                .body(r#"{"status":"error","message":"ping-pong service not reachable"}"#)
+        }
+    }
+}
+
 async fn log_output() -> HttpResponse {
     let config_content = match fs::read_to_string(CONFIG_FILE_PATH) {
         Ok(content) => content.trim().to_string(),
@@ -59,6 +82,7 @@ fn run(listener: TcpListener) -> Result<Server, std::io::Error> {
         App::new()
             .route("/", web::get().to(log_output))
             .route("/log-output", web::get().to(log_output))
+            .route("/healthz", web::get().to(health_check))
     })
     .listen(listener)?
     .run();

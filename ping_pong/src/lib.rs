@@ -9,10 +9,21 @@ struct AppState {
     db_pool: PgPool,
 }
 
-async fn health_check() -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type("application/json; charset=utf-8")
-        .body(r#"{"status":"ok"}"#)
+async fn health_check(data: web::Data<AppState>) -> HttpResponse {
+    match sqlx::query("SELECT 1")
+        .fetch_one(&data.db_pool)
+        .await
+    {
+        Ok(_) => HttpResponse::Ok()
+            .content_type("application/json; charset=utf-8")
+            .body(r#"{"status":"ok"}"#),
+        Err(e) => {
+            tracing::error!("Health check failed: database connection error: {}", e);
+            HttpResponse::ServiceUnavailable()
+                .content_type("application/json; charset=utf-8")
+                .body(r#"{"status":"error","message":"database connection failed"}"#)
+        }
+    }
 }
 
 

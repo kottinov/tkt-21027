@@ -1,4 +1,5 @@
 use std::net::TcpListener;
+use std::time::Duration;
 
 use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::EnvFilter;
@@ -14,9 +15,15 @@ async fn main() -> Result<(), std::io::Error> {
         .with_env_filter(filter)
         .init();
 
-    let pool = connect_to_database()
-        .await
-        .expect("Failed to connect to database");
+    let pool = loop {
+        match connect_to_database().await {
+            Ok(pool) => break pool,
+            Err(e) => {
+                tracing::warn!("Failed to connect to database: {}. Retrying in 2 seconds...", e);
+                tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+        }
+    };
 
     let port = std::env::var("PORT")
         .unwrap_or_else(|_| "3000".to_string())

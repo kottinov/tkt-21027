@@ -53,6 +53,12 @@ spec:
               mountPath: /usr/src/app/files
             - name: config-volume
               mountPath: /usr/src/app/config
+          readinessProbe:
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            httpGet:
+              path: /healthz
+              port: 3000
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
