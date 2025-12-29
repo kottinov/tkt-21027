@@ -101,7 +101,7 @@ jobs:
       - name: Commit and push to GitOps repository
         working-directory: ./gitops-repo
         run: |-
+          git pull origin main
           git add overlays/${{ env.ENVIRONMENT }}/kustomization.yaml
           git commit -m "Deploy ${{ env.ENVIRONMENT }} version ${{ env.TAG }}" || echo "No changes to commit"
-          git pull --rebase origin main
           git push origin main
