@@ -1,0 +1,62 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  namespace: exercises
+  name: ping-pong
+  labels:
+    app: ping-pong
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: ping-pong
+  strategy:
+    canary:
+      steps:
+      - setWeight: 25
+      - pause:
+          duration: 1m
+      - setWeight: 50
+      - pause:
+          duration: 1m
+      - analysis:
+          templates:
+          - templateName: cpu-usage-rate
+  template:
+    metadata:
+      labels:
+        app: ping-pong
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: ping-pong
+          image: gcr.io/useful-device-482607-p0/ping-pong:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          envFrom:
+            - configMapRef:
+                name: ping-pong-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL

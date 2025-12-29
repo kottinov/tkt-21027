@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - configmap.yaml
   - postgres-statefulset.yaml
-  - deployment.yaml
+  - rollout.yaml
+  - analysis-template.yaml
   - service.yaml
