@@ -63,13 +63,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_env_filter(filter)
         .init();
 
-    let telegram_bot_token = std::env::var("TELEGRAM_BOT_TOKEN")
-        .expect("TELEGRAM_BOT_TOKEN environment variable must be set");
+    let is_staging = std::env::var("STAGING").unwrap_or_else(|_| "false".to_string()) == "true";
 
-    let telegram_chat_id = std::env::var("TELEGRAM_CHAT_ID")
-        .expect("TELEGRAM_CHAT_ID environment variable must be set");
-
-    tracing::info!("Broadcaster starting with Telegram chat ID: {}", telegram_chat_id);
+    let (telegram_bot_token, telegram_chat_id) = if is_staging {
+        tracing::info!("Broadcaster starting in STAGING mode (logs only)");
+        (String::new(), String::new())
+    } else {
+        let token = std::env::var("TELEGRAM_BOT_TOKEN")
+            .expect("TELEGRAM_BOT_TOKEN environment variable must be set");
+        let chat_id = std::env::var("TELEGRAM_CHAT_ID")
+            .expect("TELEGRAM_CHAT_ID environment variable must be set");
+        tracing::info!("Broadcaster starting with Telegram chat ID: {}", chat_id);
+        (token, chat_id)
+    };
 
     let client = connect_to_nats().await?;
 
@@ -90,10 +96,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     _ => format!("Unknown action on todo: \"{}\"", event.todo.content),
                 };
 
-                if let Err(e) = send_telegram(&telegram_bot_token, &telegram_chat_id, message_text).await {
-                    tracing::error!("Failed to send Telegram message: {}", e);
+                if is_staging {
+                    tracing::info!("STAGING: {}", message_text);
                 } else {
-                    tracing::info!("Successfully sent Telegram notification");
+                    if let Err(e) = send_telegram(&telegram_bot_token, &telegram_chat_id, message_text).await {
+                        tracing::error!("Failed to send Telegram message: {}", e);
+                    } else {
+                        tracing::info!("Successfully sent Telegram notification");
+                    }
                 }
             }
             Err(e) => {

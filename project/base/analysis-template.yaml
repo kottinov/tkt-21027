@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: restart-rate
+spec:
+  metrics:
+  - name: restart-rate
+    interval: 10s
+    count: 5
+    successCondition: result < 1
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: http://kube-prometheus-stack-prometheus.prometheus.svc.cluster.local:9090
+        query: |
+          scalar(
+            sum(rate(kube_pod_container_status_restarts_total{namespace="project",pod=~"the-project-.*"}[2m]))
+          )

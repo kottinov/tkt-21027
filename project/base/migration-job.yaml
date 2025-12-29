@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: todo-postgres-migration
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: migrations
+          configMap:
+            name: todo-postgres-migration
+      containers:
+        - name: migrate
+          image: postgres:16-alpine
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h todo-postgres-stset-0.todo-postgres-svc -p 5432 -U postgres; do
+                echo "Waiting for postgres..."
+                sleep 2
+              done
+
+              echo "Running migrations..."
+              for migration_file in /migrations/*.sql; do
+                echo "Running migration: $migration_file"
+                psql postgresql://postgres:postgres@todo-postgres-stset-0.todo-postgres-svc:5432/todos -f "$migration_file"
+              done
+
+              echo "Migration completed successfully"

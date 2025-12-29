@@ -1,0 +1,73 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: the-project
+  labels:
+    app: the-project
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: the-project
+  strategy:
+    canary:
+      steps:
+      - setWeight: 25
+      - pause:
+          duration: 30s
+      - setWeight: 50
+      - pause:
+          duration: 30s
+      - analysis:
+          templates:
+          - templateName: restart-rate
+  template:
+    metadata:
+      labels:
+        app: the-project
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      volumes:
+        - name: image-cache
+          emptyDir: {}
+      containers:
+        - name: the-project
+          image: PROJECT/IMAGE
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: image-cache
+              mountPath: /usr/src/app/cache
+          livenessProbe:
+            httpGet:
+              path: /the-project/healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /the-project/healthz
+              port: 3000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          envFrom:
+            - configMapRef:
+                name: the-project-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 1m
+              memory: 8Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

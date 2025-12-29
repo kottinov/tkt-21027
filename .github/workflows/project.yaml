@@ -1,0 +1,92 @@
+name: Release project
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'the_project/**'
+      - 'todo_backend/**'
+      - 'broadcaster/**'
+      - 'project/**'
+      - '.github/workflows/project.yaml'
+
+permissions:
+  contents: write
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: dwk-repository
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GKE_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker to use gcloud
+        run: gcloud --quiet auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Determine environment
+        run: |-
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "ENVIRONMENT=production" >> $GITHUB_ENV
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          else
+            echo "ENVIRONMENT=staging" >> $GITHUB_ENV
+            echo "TAG=$GITHUB_SHA" >> $GITHUB_ENV
+          fi
+
+      - name: Build and push the-project
+        working-directory: ./the_project
+        run: |-
+          IMAGE_TAG="$REGISTRY/$PROJECT_ID/$REPOSITORY/the-project:$TAG"
+          docker build --platform linux/amd64 --tag $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          echo "THE_PROJECT_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Build and push todo-backend
+        working-directory: ./todo_backend
+        run: |-
+          IMAGE_TAG="$REGISTRY/$PROJECT_ID/$REPOSITORY/todo-backend:$TAG"
+          docker build --platform linux/amd64 --tag $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          echo "TODO_BACKEND_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Build and push broadcaster
+        working-directory: ./broadcaster
+        run: |-
+          IMAGE_TAG="$REGISTRY/$PROJECT_ID/$REPOSITORY/broadcaster:$TAG"
+          docker build --platform linux/amd64 --tag $IMAGE_TAG .
+          docker push $IMAGE_TAG
+          echo "BROADCASTER_IMAGE=$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2.1.0
+
+      - name: Update image tags
+        working-directory: ./project/overlays/${{ env.ENVIRONMENT }}
+        run: |-
+          kustomize edit set image PROJECT/IMAGE=$THE_PROJECT_IMAGE
+          kustomize edit set image todo-backend:prod=$TODO_BACKEND_IMAGE
+          kustomize edit set image broadcaster:prod=$BROADCASTER_IMAGE
+
+      - name: Commit kustomization.yaml to GitHub
+        uses: EndBug/add-and-commit@v9
+        with:
+          add: 'project/overlays/${{ env.ENVIRONMENT }}/kustomization.yaml'
+          message: Deploy ${{ env.ENVIRONMENT }} version ${{ env.TAG }}

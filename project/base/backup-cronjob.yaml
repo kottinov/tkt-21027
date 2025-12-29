@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: todo-postgres-backup
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: google/cloud-sdk:alpine
+              env:
+                - name: PGHOST
+                  value: "todo-postgres-stset-0.todo-postgres-svc"
+                - name: PGPORT
+                  value: "5432"
+                - name: PGUSER
+                  value: "postgres"
+                - name: PGPASSWORD
+                  value: "postgres"
+                - name: PGDATABASE
+                  value: "todos"
+                - name: GCS_BUCKET
+                  value: "kottinov-proj-backup-bucket"
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /var/secrets/google/key.json
+              volumeMounts:
+                - name: gcs-key
+                  mountPath: /var/secrets/google
+                  readOnly: true
+              command:
+                - sh
+                - -c
+                - |
+                  apk add --no-cache postgresql16-client
+
+                  until pg_isready -h ${PGHOST} -p ${PGPORT} -U ${PGUSER}; do
+                    echo "Waiting for postgres..."
+                    sleep 2
+                  done
+
+                  BACKUP_FILE="todo-backup-$(date +%Y%m%d-%H%M%S).sql"
+
+                  echo "Creating backup: ${BACKUP_FILE}"
+                  pg_dump > /tmp/${BACKUP_FILE}
+
+                  gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+
+                  echo "Uploading backup to gs://${GCS_BUCKET}/${BACKUP_FILE}"
+                  gsutil cp /tmp/${BACKUP_FILE} gs://${GCS_BUCKET}/${BACKUP_FILE}
+
+                  echo "Backup completed successfully"
+
+                  rm /tmp/${BACKUP_FILE}
+          volumes:
+            - name: gcs-key
+              secret:
+                secretName: gcs-backup-key
