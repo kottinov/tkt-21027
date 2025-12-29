@@ -91,11 +91,12 @@ jobs:
           kustomize edit set image todo-backend:prod=$TODO_BACKEND_IMAGE
           kustomize edit set image broadcaster:prod=$BROADCASTER_IMAGE
 
-      - name: Commit kustomization.yaml to GitOps repository
-        uses: EndBug/add-and-commit@v9
-        with:
-          add: 'overlays/${{ env.ENVIRONMENT }}/kustomization.yaml'
-          message: Deploy ${{ env.ENVIRONMENT }} version ${{ env.TAG }}
-          pull: '--rebase --autostash'
-          cwd: './gitops-repo'
-          github_token: ${{ secrets.GITOPS_PUSH_TOKEN }}
+      - name: Commit and push to GitOps repository
+        working-directory: ./gitops-repo
+        run: |-
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add overlays/${{ env.ENVIRONMENT }}/kustomization.yaml
+          git commit -m "Deploy ${{ env.ENVIRONMENT }} version ${{ env.TAG }}" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push origin main
