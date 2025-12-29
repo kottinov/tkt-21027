@@ -4,15 +4,18 @@ kind: Kustomization
 namespace: staging
 
 resources:
-  - ../../base
+- ../../base
 
 patches:
-  - path: broadcaster-patch.yaml
+- path: broadcaster-patch.yaml
 
 images:
-  - name: PROJECT/IMAGE
-    newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/the-project
-  - name: todo-backend:prod
-    newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/todo-backend
-  - name: broadcaster:prod
-    newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/broadcaster
+- name: PROJECT/IMAGE
+  newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/the-project
+  newTag: a26ce6f757b1a8c93e949cadfa5aa644fc4cc936
+- name: broadcaster:prod
+  newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/broadcaster
+  newTag: a26ce6f757b1a8c93e949cadfa5aa644fc4cc936
+- name: todo-backend:prod
+  newName: europe-north1-docker.pkg.dev/useful-device-482607-p0/dwk-repository/todo-backend
+  newTag: a26ce6f757b1a8c93e949cadfa5aa644fc4cc936
